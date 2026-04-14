@@ -14,12 +14,6 @@ tasks.jar {
     enabled = false
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21)) // TODO split modules for java compatibility
-    }
-}
-
 subprojects {
     apply(plugin = "java")
 

@@ -6,7 +6,6 @@ import com.jodexindustries.donatecase.api.scheduler.DCFuture;
 import com.jodexindustries.donatecase.spigot.BukkitBackend;
 import com.jodexindustries.donatecase.api.armorstand.ArmorStandCreator;
 import com.jodexindustries.donatecase.spigot.api.armorstand.EntityArmorStandCreator;
-import com.jodexindustries.donatecase.spigot.api.armorstand.PacketArmorStandCreator;
 import com.jodexindustries.donatecase.api.data.storage.CaseLocation;
 import com.jodexindustries.donatecase.api.tools.DCTools;
 import com.jodexindustries.donatecase.spigot.api.platform.BukkitInventory;
@@ -22,12 +21,9 @@ import java.util.UUID;
 
 public class ToolsImpl extends DCToolsBukkit {
 
-    private final BukkitBackend backend;
     private final SkullAPI skullAPI;
 
     public ToolsImpl(BukkitBackend backend) {
-        this.backend = backend;
-
         Plugin plugin = backend.getPlugin();
         this.skullAPI = LiteSkullBuilder.builder().bukkitScheduler(plugin).logger(plugin.getLogger()).build();
     }
@@ -39,11 +35,7 @@ public class ToolsImpl extends DCToolsBukkit {
 
     @Override
     public ArmorStandCreator createArmorStand(UUID animationId, CaseLocation location) {
-        if (backend.getPacketEventsSupport() != null && backend.getPacketEventsSupport().isUsePackets()) {
-            return new PacketArmorStandCreator(animationId, location);
-        } else {
-            return new EntityArmorStandCreator(animationId, BukkitUtils.toBukkit(location));
-        }
+        return new EntityArmorStandCreator(animationId, BukkitUtils.toBukkit(location));
     }
 
     @Override

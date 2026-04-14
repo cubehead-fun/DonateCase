@@ -9,9 +9,12 @@ import com.jodexindustries.donatecase.api.armorstand.ArmorStandCreator;
 import com.jodexindustries.donatecase.api.data.storage.CaseLocation;
 import com.jodexindustries.donatecase.api.scheduler.SchedulerTask;
 import com.jodexindustries.donatecase.spigot.tools.BukkitUtils;
+import com.jodexindustries.donatecase.spigot.tools.Pair;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.util.*;
@@ -22,6 +25,7 @@ public class WheelAnimation extends BukkitJavaAnimation {
     private final static DCAPI api = DCAPI.getInstance();
 
     private final List<ArmorStandCreator> armorStands = new ArrayList<>();
+    private final List<ArmorStandCreator> textStands = new ArrayList<>();
 
     private WheelSettings settings;
 
@@ -97,7 +101,6 @@ public class WheelAnimation extends BukkitJavaAnimation {
 
         private void initializeItems() {
             if (settings.wheelType == WheelSettings.WheelType.FULL) {
-                // FULL logic - unique items
                 List<CaseItem> uniqueItems = new ArrayList<>(getDefinition().items().items().values());
 
                 if (settings.shuffle) {
@@ -108,24 +111,32 @@ public class WheelAnimation extends BukkitJavaAnimation {
                 for (CaseItem uniqueItem : uniqueItems) {
                     if (uniqueItem.name().equals(getItem().name())) {
                         additionalSteps = uniqueItems.size() - armorStands.size();
-                        armorStands.add(spawnArmorStand(location, getItem(), settings.smallArmorStand));
-                    } else armorStands.add(spawnArmorStand(location, uniqueItem, settings.smallArmorStand));
+                        Pair<ArmorStandCreator, ArmorStandCreator> pair = spawnArmorStandPair(location, getItem(), settings.smallArmorStand);
+                        armorStands.add(pair.fst);
+                        textStands.add(pair.snd);
+                    } else {
+                        Pair<ArmorStandCreator, ArmorStandCreator> pair = spawnArmorStandPair(location, uniqueItem, settings.smallArmorStand);
+                        armorStands.add(pair.fst);
+                        textStands.add(pair.snd);
+                    }
                 }
 
                 double additionalAngle = additionalSteps * (2 * Math.PI / armorStands.size());
                 targetAngle = 2 * Math.PI * settings.scroll.count + additionalAngle;
             } else {
-                // RANDOM logic - random items with duplicates
-                armorStands.add(spawnArmorStand(location, getItem(), settings.smallArmorStand));
+                armorStands.add(spawnArmorStandHead(location, getItem(), settings.smallArmorStand));
+                textStands.add(spawnArmorStandText(location, getItem()));
                 for (int i = 1; i < settings.itemsCount; i++) {
                     CaseItem randomItem = getDefinition().items().getRandomItem();
-                    armorStands.add(spawnArmorStand(location, randomItem, settings.smallArmorStand));
+                    armorStands.add(spawnArmorStandHead(location, randomItem, settings.smallArmorStand));
+                    textStands.add(spawnArmorStandText(location, randomItem));
                 }
                 int rand = new Random().nextInt(armorStands.size());
                 int additionalSteps = armorStands.size() - rand;
                 double additionalAngle = additionalSteps * (2 * Math.PI / armorStands.size());
                 targetAngle = 2 * Math.PI * settings.scroll.count + additionalAngle;
                 Collections.swap(armorStands, 0, rand);
+                Collections.swap(textStands, 0, rand);
             }
         }
 
@@ -150,19 +161,27 @@ public class WheelAnimation extends BukkitJavaAnimation {
         }
 
         private void moveArmorStands(double angle) {
-            for (ArmorStandCreator entity : armorStands) {
+            for (int i = 0; i < armorStands.size(); i++) {
+                ArmorStandCreator headStand = armorStands.get(i);
+                ArmorStandCreator textStand = textStands.get(i);
+                
                 double x = settings.radius * Math.sin(angle);
                 double y = settings.radius * Math.cos(angle);
 
                 CaseVector rotationAxis = location.getDirection().crossProduct(new CaseVector(0, 1, 0)).normalize();
                 CaseLocation newLoc = location.clone().add(rotationAxis.multiply(x).add(location.getDirection().multiply(y)));
-                entity.teleport(newLoc);
+                
+                headStand.teleport(newLoc);
+                textStand.teleport(newLoc.add(0, 0.8, 0));
+                
                 angle += offset;
 
                 if (sound != null) {
                     double currentAngle = angle - baseAngle;
                     if (currentAngle - lastCompletedRotation >= rotationThreshold) {
-                        world.playSound(bukkitLocation, sound, settings.scroll.volume, settings.scroll.pitch);
+                        for (Entity e : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                            if (e instanceof Player nearbyPlayer)
+                                nearbyPlayer.playSound(bukkitLocation, sound, settings.scroll.volume, settings.scroll.pitch);
                         lastCompletedRotation = currentAngle;
                     }
                 }
@@ -174,12 +193,16 @@ public class WheelAnimation extends BukkitJavaAnimation {
             for (ArmorStandCreator stand : armorStands) {
                 stand.remove();
             }
+            for (ArmorStandCreator stand : textStands) {
+                stand.remove();
+            }
             end();
             armorStands.clear();
+            textStands.clear();
         }
     }
 
-    private ArmorStandCreator spawnArmorStand(CaseLocation location, CaseItem item, boolean small) {
+    private ArmorStandCreator spawnArmorStandHead(CaseLocation location, CaseItem item, boolean small) {
         CaseMaterial material = item.material();
 
         ArmorStandCreator as = api.getPlatform().getTools().createArmorStand(getUuid(), location);
@@ -187,11 +210,29 @@ public class WheelAnimation extends BukkitJavaAnimation {
         as.setVisible(false);
         as.setGravity(false);
         if (settings.armorStandEulerAngle != null) as.setAngle(settings.armorStandEulerAngle);
-        as.setCustomName(api.getPlatform().getPAPI().setPlaceholders(getPlayer(), item.material().displayName()));
-        as.setCustomNameVisible(item.material().displayName() != null && !item.material().displayName().isEmpty());
         as.spawn();
 
         as.setEquipment(settings.itemSlot, material.itemStack());
         return as;
+    }
+
+    private ArmorStandCreator spawnArmorStandText(CaseLocation location, CaseItem item) {
+        String displayName = item.material().displayName();
+        boolean hasText = displayName != null && !displayName.isEmpty();
+
+        ArmorStandCreator as = api.getPlatform().getTools().createArmorStand(getUuid(), location);
+        as.setSmall(true);
+        as.setVisible(false);
+        as.setGravity(false);
+        as.setMarker(true);
+        as.setCustomName(api.getPlatform().getPAPI().setPlaceholders(getPlayer(), displayName != null ? displayName : ""));
+        as.setCustomNameVisible(hasText);
+        as.spawn();
+
+        return as;
+    }
+
+    private Pair<ArmorStandCreator, ArmorStandCreator> spawnArmorStandPair(CaseLocation location, CaseItem item, boolean small) {
+        return Pair.of(spawnArmorStandHead(location, item, small), spawnArmorStandText(location, item));
     }
 }

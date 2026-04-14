@@ -10,7 +10,9 @@ import com.jodexindustries.donatecase.spigot.api.animation.BukkitJavaAnimation;
 import com.jodexindustries.donatecase.spigot.tools.BukkitUtils;
 import com.jodexindustries.donatecase.spigot.tools.DCToolsBukkit;
 import org.bukkit.*;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.util.Vector;
@@ -119,7 +121,9 @@ public class ShapeAnimation extends BukkitJavaAnimation {
                 }
 
                 if (sound != null)
-                    world.playSound(bukkitLocation, sound, settings.scroll.volume, settings.scroll.pitch);
+                    for (Entity entity : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                        if (entity instanceof Player nearbyPlayer)
+                            nearbyPlayer.playSound(bukkitLocation, sound, settings.scroll.volume, settings.scroll.pitch);
             }
 
             if (tick == settings.scroll.time + 1) {

@@ -13,6 +13,8 @@ import com.jodexindustries.donatecase.spigot.tools.BukkitUtils;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.util.ArrayList;
@@ -55,7 +57,7 @@ public class FutureWheelAnimation extends BukkitJavaAnimation {
 
         private final double scrollingTime;
 
-        private int winEntity;
+        private ArmorStandCreator winEntity;
 
         private double angle = 0;
 
@@ -136,7 +138,9 @@ public class FutureWheelAnimation extends BukkitJavaAnimation {
                     holo.updateMeta();
 
                     if (spawnSound != null) {
-                        world.playSound(bukkitLocation, spawnSound, 1, 1);
+                        for (Entity e : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                            if (e instanceof Player nearbyPlayer)
+                                nearbyPlayer.playSound(bukkitLocation, spawnSound, 1, 1);
                     }
                     if (settings.spawn.particle != null) {
                         world.spawnParticle(settings.spawn.particle, BukkitUtils.toBukkit(entity.getLocation()), settings.spawn.particleCount, 0, 0, 0, null);
@@ -164,7 +168,9 @@ public class FutureWheelAnimation extends BukkitJavaAnimation {
                     entity.updateMeta();
 
                     if (scrollSound != null) {
-                        world.playSound(bukkitLocation, scrollSound, 1, 1);
+                        for (Entity e : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                            if (e instanceof Player nearbyPlayer)
+                                nearbyPlayer.playSound(bukkitLocation, scrollSound, 1, 1);
                     }
                     if (settings.scroll.particle != null) {
                         world.spawnParticle(settings.scroll.particle, BukkitUtils.toBukkit(entity.getLocation()), settings.scroll.particleCount, 0, 0, 0, null);
@@ -173,7 +179,7 @@ public class FutureWheelAnimation extends BukkitJavaAnimation {
                     index++;
 
                     if (i > scrollingTime) {
-                        if (entity.getEntityId() == winEntity) {
+                        if (entity == winEntity) {
                             finished = true;
                             preEnd();
                         }
@@ -196,7 +202,7 @@ public class FutureWheelAnimation extends BukkitJavaAnimation {
         private ArmorStandCreator spawnArmorStand(CaseItem item, boolean hologram) {
             ArmorStandCreator creator = api.getPlatform().getTools().createArmorStand(getUuid(), location);
 
-            if (item.name().equals(getItem().name()) && !hologram) winEntity = creator.getEntityId();
+            if (item.name().equals(getItem().name()) && !hologram) winEntity = creator;
             creator.setMarker(true);
             creator.setVisible(false);
             creator.setCollidable(false);

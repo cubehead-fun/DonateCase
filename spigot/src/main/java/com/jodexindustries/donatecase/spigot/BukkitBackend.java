@@ -471,9 +471,13 @@ public class BukkitBackend extends BackendPlatform {
     }
 
     private void loadPacketEventsAPI() {
-        if (Bukkit.getServer().getPluginManager().isPluginEnabled("packetevents")) {
+        PluginManager pm = Bukkit.getServer().getPluginManager();
+        if (pm.isPluginEnabled("packetevents")) {
             try {
                 packetEventsSupport = new PacketEventsSupport(this);
+                if (pm.isPluginEnabled("Geyser-Spigot") || pm.isPluginEnabled("floodgate")) {
+                    getLogger().warning("GeyserMC detected — packet-based armor stands disabled for Bedrock compatibility. Using entity-based armor stands instead.");
+                }
             } catch (Throwable e) {
                 getLogger().log(Level.WARNING, "Error hooking to packetevents: ", e);
             }

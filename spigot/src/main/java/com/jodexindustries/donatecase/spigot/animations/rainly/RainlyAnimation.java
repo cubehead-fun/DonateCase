@@ -10,6 +10,8 @@ import com.jodexindustries.donatecase.spigot.tools.BukkitUtils;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.util.ArrayList;
@@ -109,7 +111,9 @@ public class RainlyAnimation extends BukkitJavaAnimation {
             preEnd();
 
             if (endSound != null)
-                world.playSound(bukkitLocation, endSound, settings.end.volume, settings.end.pitch);
+                for (Entity entity : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                    if (entity instanceof Player nearbyPlayer)
+                        nearbyPlayer.playSound(bukkitLocation, endSound, settings.end.volume, settings.end.pitch);
 
             if (settings.end.particle != null)
                 world.spawnParticle(settings.end.particle, bukkitLocation, 0);
@@ -131,7 +135,9 @@ public class RainlyAnimation extends BukkitJavaAnimation {
             as.updateMeta();
 
             if (scrollSound != null)
-                world.playSound(bukkitLocation, scrollSound, settings.scroll.volume, settings.scroll.pitch);
+                for (Entity entity : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                    if (entity instanceof Player nearbyPlayer)
+                        nearbyPlayer.playSound(bukkitLocation, scrollSound, settings.scroll.volume, settings.scroll.pitch);
 
             if (settings.scroll.particle != null)
                 world.spawnParticle(settings.scroll.particle, bukkitLocation.clone().add(0.0, 0.4, 0.0), 9, 0.1, 0.1, 0.1, 0.0);

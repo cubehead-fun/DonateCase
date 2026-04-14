@@ -12,6 +12,8 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.util.ArrayList;
@@ -154,7 +156,10 @@ public class PopAnimation extends BukkitJavaAnimation {
             indexes.remove(randomIndex);
 
             Sound sound = settings.scroll.sound();
-            if (sound != null) world.playSound(bukkitLocation, sound, settings.scroll.volume, settings.scroll.pitch);
+            if (sound != null)
+                for (Entity entity : world.getNearbyEntities(bukkitLocation, 20, 20, 20))
+                    if (entity instanceof Player nearbyPlayer)
+                        nearbyPlayer.playSound(bukkitLocation, sound, settings.scroll.volume, settings.scroll.pitch);
 
         }
 
